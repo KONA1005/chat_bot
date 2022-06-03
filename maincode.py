@@ -1,13 +1,98 @@
-'''
-1. 법률상담/구조사례 url 형식만 넣어놓은거고(제대로 안쓰면 안떠서), 앞으로 다 채워넣야합니다
-2. 대, 소 메뉴 작업 끝
-
-'''
-
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request #Flask 실행을 위한 라이브러리 불러오기
+import requests
+import pandas as pd
 import sys
+import json 
 
 application = Flask(__name__)
+
+df = pd.read_csv('RealEstate.csv', encoding='utf-8', index_col=0 )
+df2 = df.to_dict()
+df3 = dict((value,key) for (key,value) in df2['Q'].items())
+df4 = dict((key,value) for (key,value) in df2['A'].items())
+data = {
+    'que' :  df3,
+    'ans' : df4
+}
+with open("df.json", "w") as json_file :
+    json.dump(data, json_file)
+with open("df.json", "r") as json_file :
+    data1 = json.load(json_file)
+
+
+# 법률용어
+@application.route('/api/answer', methods=['POST'])
+def ans() :
+    body = request.get_json()
+    print(body)
+    params_df = body['action']['params']
+    print(params_df)
+    ans = params_df['law_dict'] # 사용자 발화값 받아와야함
+    print(ans)
+    Q = data1['que'][ans]# 두번째가 입력값
+    a = str(Q)
+    A = data1['ans'][a]
+    responseBody = {
+        "version": "2.0",
+        "template": { 
+            "outputs": [
+                {
+                    "simpleText": {
+                        "text": A 
+                    }
+                }
+            ]
+        }
+    }
+
+    return responseBody
+# 티키타카
+dj = pd.read_csv('chatflow1900.csv', encoding='utf-8', index_col=0 )
+# 판다스 dict 형으로 변경 
+dj2 = dj.to_dict()
+# 번호로 매칭되게 변경
+dj3 = dict((value,key) for (key,value) in dj2['Q'].items())
+dj4 = dict((key,value) for (key,value) in dj2['A'].items())
+
+# data 파일 만들기
+dab = {
+    'que' :  dj3,
+    'ans' : dj4
+}
+# json 파일로 변경
+with open("dj.json", "w") as json_file :
+    json.dump(dab, json_file)
+# json 파일가져오기
+with open("dj.json", "r") as json_file :
+    dab1 = json.load(json_file)
+
+@application.route("/api/chatflow", methods=["POST"])
+def chatflow() :
+    body = request.get_json()
+    print(body)
+    
+    params_df = body['action']['params']
+    print(params_df)
+    ans = params_df['chatflow_dic'] 
+    print(ans)
+    # value 값찾아오는 형식 리스트 리스트
+    Q = dab1['que'][ans]# 두번째가 입력값
+    a = str(Q)
+    A = dab1['ans'][a]
+
+    responseBody = {
+        "version": "2.0",
+        "template": { 
+            "outputs": [
+                {
+                    "simpleText": {
+                        "text": A 
+                    }
+                }
+            ]
+        }
+    }
+    return responseBody
 
 @application.route("/api/main", methods=["POST"])
 # 메인2 @ 웰컴블록
@@ -129,23 +214,12 @@ def main():
         "messageText": "헌법",
         "action": "message",
         "label": "헌법" 
-      },
-      {
-        "messageText": "채무자대리",
-        "action": "message",
-        "label": "채무자대리" 
-      },
-      {
-        "messageText": "기타",
-        "action": "message",
-        "label": "기타" 
-      },
+      }
     ]
   }
 }
     return jsonify(response)
 
- 
 # 노동메뉴
 @application.route("/api/workmenu", methods=["POST"])
 def workmenu():
@@ -176,81 +250,7 @@ def workmenu():
 }
     return jsonify(response)
 
-## 노동 ##
-# 임금 및 퇴직금
-@application.route("/api/workmoney1", methods=["POST"])
-def workmoney1 ():
-    response = {
-        "contents" : [
 
-    {
-      "type":"card.image",
-      "cards":[
-        {
-          "title":"임금 및 퇴직금",
-          "imageUrl":"https://mblogthumb-phinf.pstatic.net/MjAyMjA1MjBfMTA2/MDAxNjUzMDMwODc5ODQ1.EUMy-EeQ2fm_IOpW2RERsJALVitrqLjKF0HgI7PxUBcg.67_2LGbEl4W7iZhHNieWy-6fX2pBCGh07ytLpUIEG4wg.JPEG.sjkor1005/KakaoTalk_20220520_143036541.jpg?type=w800",
-          "description":"임금 및 퇴직금청구의 소",
-          "linkUrl": {},
-          "buttons":[
-            {
-              "type":"url",
-              "label":"법률서식",
-              "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=04efbb9252474228ab1edbbc6ddbadf1&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
-              }
-            },
-            {
-              "type":"url",
-              "label":"법률상담/구조사례",
-              "data":{
-                "url":"https://casenote.kr/"
-              }
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}  
-    return jsonify(response)
-
-
-# 해고
-@application.route("/api/ufire", methods=["POST"])
-def ufire ():
-    response = {
-        "contents" : [
-
-    {
-      "type":"card.image",
-      "cards":[
-        {
-          "title":"해고",
-          "imageUrl":"https://mblogthumb-phinf.pstatic.net/MjAyMjA1MjBfMTA2/MDAxNjUzMDMwODc5ODQ1.EUMy-EeQ2fm_IOpW2RERsJALVitrqLjKF0HgI7PxUBcg.67_2LGbEl4W7iZhHNieWy-6fX2pBCGh07ytLpUIEG4wg.JPEG.sjkor1005/KakaoTalk_20220520_143036541.jpg?type=w800",
-          "description":"해고무효확인 및 임금청구의 소",
-          "linkUrl": {},
-          "buttons":[
-            {
-              "type":"url",
-              "label":"법률서식",
-              "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d1d071e8060047dc8bff140c16a87163&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
-              }
-            },
-            {
-              "type":"url",
-              "label":"법률상담/구조사례",
-              "data":{
-                "url":"https://casenote.kr/"
-              }
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}  
-    return jsonify(response)
 
 
 # 주택임대차메뉴
@@ -296,6 +296,1098 @@ def house():
   } 
 }
     return jsonify(response)
+
+
+
+# 헌법 메뉴
+@application.route("/api/constitutionmenu", methods=["POST"])
+def constitutionmenu():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "헌법 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "헌법소원",
+        "action": "message",
+        "label": "헌법소원",
+       
+      },
+      {
+        "messageText": "위헌",
+        "action": "message",
+        "label": "위헌"
+      }
+    ]  
+  } 
+}
+    return jsonify(response)
+
+
+
+
+# 형사소송 메뉴
+@application.route("/api/brothercowmenu", methods=["POST"])
+def brothercowmenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "형사소송 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "고소와 고발",
+        "action": "message",
+        "label": "고소와 고발",
+       
+      },
+      {
+        "messageText": "기타 형사절차",
+        "action": "message",
+        "label": "기타 형사절차"
+      },
+      {
+        "messageText": "불기소처분 및 불복",
+        "action": "message",
+        "label": "불기소처분 및 불복"
+      },
+      {
+        "messageText": "상소",
+        "action": "message",
+        "label": "상소"
+      },
+      {
+        "messageText": "소년 및 가정보호사건",
+        "action": "message",
+        "label": "소년 및 가정보호사건"
+      },
+      {
+        "messageText": "소송절차 및 증거",
+        "action": "message",
+        "label": "소송절차 및 증거"
+      },
+      {
+        "messageText": "인신보호사건",
+        "action": "message",
+        "label": "인신보호사건"
+      },
+      {
+        "messageText": "재심, 약식절차",
+        "action": "message",
+        "label": "재심, 약식절차"
+      },
+      {
+        "messageText": "재판의 집행",
+        "action": "message",
+        "label": "재판의 집행"
+      },
+      {
+        "messageText": "체포, 구속 및 석방, 보석",
+        "action": "message",
+        "label": "체포, 구속 및 석방, 보석"
+      }
+    ]  
+  } 
+}
+    return jsonify(response)
+
+# 행정메뉴
+@application.route("/api/administrationmenu", methods=["POST"])
+def administrationmenu():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "행정 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "건축 관련 행정",
+        "action": "message",
+        "label": "건축 관련 행정",
+       
+      },
+      {
+        "messageText": "교통 관련 행정",
+        "action": "message",
+        "label": "교통 관련 행정"
+      },
+      {
+        "messageText": "기타 행정",
+        "action": "message",
+        "label": "기타 행정"
+      },
+      {
+        "messageText": "난민 관련 행정",
+        "action": "message",
+        "label": "난민 관련 행정"
+      },
+      {
+        "messageText": "부동산 관련 행정",
+        "action": "message",
+        "label": "부동산 관련 행정"
+      },
+      {
+        "messageText": "산재 관련 행정",
+        "action": "message",
+        "label": "산재 관련 행정"
+      },
+      {
+        "messageText": "영업 관련 행정",
+        "action": "message",
+        "label": "영업 관련 행정"
+      },
+      {
+        "messageText": "유공자 관련 행정",
+        "action": "message",
+        "label": "유공자 관련 행정"
+      },
+      {
+        "messageText": "조세 관련 행정",
+        "action": "message",
+        "label": "조세 관련 행정"
+      },
+      {
+        "messageText": "행정소송일반",
+        "action": "message",
+        "label": "행정소송일반"
+      },
+      {
+        "messageText": "행정 심판",
+        "action": "message",
+        "label": "행정 심판"
+      }
+    ]  
+  } 
+}
+    return jsonify(response)
+
+# 형법메뉴
+@application.route("/api/brotherlawmenu", methods=["POST"])
+def brotherlawmenu():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "형법 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "강간과 추행의 죄",
+        "action": "message",
+        "label": "강간과 추행의 죄",
+       
+      },
+      {
+        "messageText": "공무방해에 관한 죄",
+        "action": "message",
+        "label": "공무방해에 관한 죄"
+      },
+      {
+        "messageText": "공무원의 직무에 관한 죄",
+        "action": "message",
+        "label": "공무원의 직무에 관한 죄"
+      },
+      {
+        "messageText": "과실치사상의 죄",
+        "action": "message",
+        "label": "과실치사상의 죄"
+      },
+      {
+        "messageText": "교통사고처리특례법 위반죄",
+        "action": "message",
+        "label": "교통사고처리특례법 위반죄"
+      },
+      {
+        "messageText": "명예에 관한 죄",
+        "action": "message",
+        "label": "명예에 관한 죄"
+      },
+      {
+        "messageText": "무고의 죄",
+        "action": "message",
+        "label": "무고의 죄"
+      },
+      {
+        "messageText": "문서에 관한 죄",
+        "action": "message",
+        "label": "문서에 관한 죄"
+      },
+      {
+        "messageText": "방화와 실화의 죄",
+        "action": "message",
+        "label": "방화와 실화의 죄"
+      },
+      {
+        "messageText": "사기와 공갈의 죄",
+        "action": "message",
+        "label": "사기와 공갈의 죄"
+      },
+      {
+        "messageText": "살인의 죄",
+        "action": "message",
+        "label": "살인의 죄"
+      },
+      {
+        "messageText": "상해와 폭행의 죄",
+        "action": "message",
+        "label": "상해와 폭행의 죄"
+      }
+    ]  
+  } 
+}
+    return jsonify(response)
+
+# 개인회생, 파산 및 면책메뉴
+@application.route("/api/personmenu", methods=["POST"])
+def personmenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "개인회생, 파산 및 면책 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "개인회생",
+        "action": "message",
+        "label": "개인회생",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)  
+
+
+
+# 보전처분 메뉴 
+@application.route("/api/bojeonmenu", methods=["POST"])
+def bojeonmenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "보전처분 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "가압류일반",
+        "action": "message",
+        "label": "가압류일반",
+       
+      },
+      {
+        "messageText": "가처분",
+        "action": "message",
+        "label": "가처분",
+       
+      },
+      {
+        "messageText": "기타 보전처분",
+        "action": "message",
+        "label": "기타 보전처분",
+       
+      },
+      {
+        "messageText": "부동산가압류",
+        "action": "message",
+        "label": "부동산가압류",
+       
+      },
+      {
+        "messageText": "채권가압류",
+        "action": "message",
+        "label": "채권가압류",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+# 민사집행 메뉴 
+@application.route("/api/minsagomenu", methods=["POST"])
+def minsagomenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "민사집행 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "강제집행일반",
+        "action": "message",
+        "label": "강제집행일반",
+       
+      },
+      {
+        "messageText": "금전채권 강제집행",
+        "action": "message",
+        "label": "금전채권 강제집행",
+       
+      },
+      {
+        "messageText": "기타 강제집행",
+        "action": "message",
+        "label": "기타 강제집행",
+       
+      },
+      {
+        "messageText": "부동산강제집행",
+        "action": "message",
+        "label": "부동산강제집행",
+       
+      },
+      {
+        "messageText": "압류금지채권범위변경",
+        "action": "message",
+        "label": "압류금지채권범위변경",
+       
+      },
+      {
+        "messageText": "유체동산 강제집행",
+        "action": "message",
+        "label": "유체동산 강제집행",
+       
+      },
+      {
+        "messageText": "자동차 등 강제집행",
+        "action": "message",
+        "label": "자동차 등 강제집행",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+# 가족관계등록 메뉴 
+@application.route("/api/familymenu", methods=["POST"])
+def familymenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "가족관계등록 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "가족관계등록부정정",
+        "action": "message",
+        "label": "가족관계등록부정정",
+       
+      },
+      {
+        "messageText": "가족관계등록창설",
+        "action": "message",
+        "label": "가족관계등록창설",
+       
+      },
+      {
+        "messageText": "국적의 취득과 상실",
+        "action": "message",
+        "label": "국적의 취득과 상실",
+       
+      },
+      {
+        "messageText": "신고",
+        "action": "message",
+        "label": "신고",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+# 가사소송 메뉴 
+@application.route("/api/familysomenu", methods=["POST"])
+def familysomenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "가사소송 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "가,나,다류 가사소송",
+        "action": "message",
+        "label": "가,나,다류 가사소송",
+       
+      },
+      {
+        "messageText": "가사소송일반",
+        "action": "message",
+        "label": "가사소송일반",
+       
+      },
+      {
+        "messageText": "과태료와 감치",
+        "action": "message",
+        "label": "과태료와 감치",
+       
+      },
+      {
+        "messageText": "기타",
+        "action": "message",
+        "label": "기타",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+
+# 상속 메뉴 
+@application.route("/api/sangsokmenu", methods=["POST"])
+def sangsokmenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "상속 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "상속분",
+        "action": "message",
+        "label": "상속분",
+       
+      },
+      {
+        "messageText": "상속일반",
+        "action": "message",
+        "label": "상속일반",
+       
+      },
+      {
+        "messageText": "상속재산분할",
+        "action": "message",
+        "label": "상속재산분할",
+       
+      },
+      {
+        "messageText": "유류분",
+        "action": "message",
+        "label": "유류분",
+       
+      },
+      {
+        "messageText": "유언",
+        "action": "message",
+        "label": "유언",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+# 친족 메뉴 
+@application.route("/api/relationmenu", methods=["POST"])
+def relationmenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "친족 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "면접교섭권",
+        "action": "message",
+        "label": "면접교섭권",
+       
+      },
+      {
+        "messageText": "부양",
+        "action": "message",
+        "label": "부양",
+       
+      },
+      {
+        "messageText": "약혼",
+        "action": "message",
+        "label": "약혼",
+       
+      },
+      {
+        "messageText": "양육비",
+        "action": "message",
+        "label": "양육비",
+       
+      },
+      {
+        "messageText": "이혼 및 위자료",
+        "action": "message",
+        "label": "이혼 및 위자료",
+       
+      },
+      {
+        "messageText": "이혼 및 재산분할청구권",
+        "action": "message",
+        "label": "이혼 및 재산분할청구권",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+# 민사소송 메뉴 
+@application.route("/api/minsasosongmenu", methods=["POST"])
+def minsasosongmenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "민사소송 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "간이소송절차",
+        "action": "message",
+        "label": "간이소송절차",
+       
+      },
+      {
+        "messageText": "관할",
+        "action": "message",
+        "label": "관할",
+       
+      },
+      {
+        "messageText": "기타 민사소송",
+        "action": "message",
+        "label": "기타 민사소송",
+       
+      },
+      {
+        "messageText": "당사자",
+        "action": "message",
+        "label": "당사자",
+       
+      },
+      {
+        "messageText": "상소",
+        "action": "message",
+        "label": "상소",
+       
+      },
+      {
+        "messageText": "소송비용",
+        "action": "message",
+        "label": "소송비용",
+       
+      },
+      {
+        "messageText": "소송절차",
+        "action": "message",
+        "label": "소송절차",
+       
+      },
+      {
+        "messageText": "재심",
+        "action": "message",
+        "label": "재심",
+       
+      },
+      {
+        "messageText": "증거",
+        "action": "message",
+        "label": "증거",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+# 상사 메뉴 
+@application.route("/api/bossmenu", methods=["POST"])
+def bossmenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "상사 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "보험",
+        "action": "message",
+        "label": "보험",
+       
+      },
+      {
+        "messageText": "상사일반",
+        "action": "message",
+        "label": "상사일반",
+       
+      },
+      {
+        "messageText": "어음,수표",
+        "action": "message",
+        "label": "어음,수표",
+       
+      },
+      {
+        "messageText": "회사",
+        "action": "message",
+        "label": "회사",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+# 계약메뉴 
+@application.route("/api/trademenu", methods=["POST"])
+def trademenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "계약 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "계약금",
+        "action": "message",
+        "label": "계약금",
+       
+      },
+      {
+        "messageText": "계약의 해지 해제",
+        "action": "message",
+        "label": "계약의 해지 해제",
+       
+      },
+      {
+        "messageText": "기타 계약",
+        "action": "message",
+        "label": "기타 계약",
+       
+      },
+      {
+        "messageText": "대여금 등",
+        "action": "message",
+        "label": "대여금 등",
+       
+      },
+      {
+        "messageText": "도급",
+        "action": "message",
+        "label": "도급",
+       
+      },
+      {
+        "messageText": "매매",
+        "action": "message",
+        "label": "매매",
+       
+      },
+      {
+        "messageText": "부동산중개",
+        "action": "message",
+        "label": "부동산중개",
+       
+      },
+      {
+        "messageText": "위임",
+        "action": "message",
+        "label": "위임",
+       
+      },
+      {
+        "messageText": "임대차",
+        "action": "message",
+        "label": "임대차",
+       
+      },
+      {
+        "messageText": "조합과 계",
+        "action": "message",
+        "label": "조합과 계",
+       
+      },
+      {
+        "messageText": "할부거래 및 방문판매,신용카드",
+        "action": "message",
+        "label": "할부거래 및 방문판매,신용카드",
+       
+      },
+      {
+        "messageText": "화해",
+        "action": "message",
+        "label": "화해",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+#  채권메뉴 
+@application.route("/api/chaemenu", methods=["POST"])
+def chaemenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "채권 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "기타 채권",
+        "action": "message",
+        "label": "기타 채권",
+       
+      },
+      {
+        "messageText": "부당이득",
+        "action": "message",
+        "label": "부당이득",
+       
+      },
+      {
+        "messageText": "연대채무,보증채무",
+        "action": "message",
+        "label": "연대채무,보증채무",
+       
+      },
+      {
+        "messageText": "채권양도",
+        "action": "message",
+        "label": "채권양도",
+       
+      },
+      {
+        "messageText": "채권의 소멸(공탁 등)",
+        "action": "message",
+        "label": "채권의 소멸(공탁 등)",
+       
+      },
+      {
+        "messageText": "채권자취소권",
+        "action": "message",
+        "label": "채권자취소권",
+       
+      },
+      {
+        "messageText": "채무인수",
+        "action": "message",
+        "label": "채무인수",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+
+# 물권 메뉴 
+@application.route("/api/mulmenu", methods=["POST"])
+def mulmenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "물권 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "공동소유",
+        "action": "message",
+        "label": "공동소유",
+       
+      },
+      {
+        "messageText": "기타 물권",
+        "action": "message",
+        "label": "기타 물권",
+       
+      },
+      {
+        "messageText": "물권의 변동(부동산등기 등)",
+        "action": "message",
+        "label": "물권의 변동(부동산등기 등)",
+       
+      },
+      {
+        "messageText": "상린관계",
+        "action": "message",
+        "label": "상린관계",
+       
+      },
+      {
+        "messageText": "소유권",
+        "action": "message",
+        "label": "소유권",
+       
+      },
+      {
+        "messageText": "소유권에 기한 물권적 청구권",
+        "action": "message",
+        "label": "소유권에 기한 물권적 청구권",
+       
+      },
+      {
+        "messageText": "저당권",
+        "action": "message",
+        "label": "저당권",
+       
+      },
+      {
+        "messageText": "점유권",
+        "action": "message",
+        "label": "점유권",
+       
+      },
+      {
+        "messageText": "지상권과 전세권",
+        "action": "message",
+        "label": "지상권과 전세권",
+       
+      },
+      {
+        "messageText": "취득시효",
+        "action": "message",
+        "label": "취득시효",
+       
+      
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+
+# 민사일반 메뉴 
+@application.route("/api/minsa1menu", methods=["POST"])
+def minsa1menu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "민사일반 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "대리",
+        "action": "message",
+        "label": "대리",
+       
+      },
+      {
+        "messageText": "법률행위일반",
+        "action": "message",
+        "label": "법률행위일반",
+       
+      },
+      {
+        "messageText": "소멸시효",
+        "action": "message",
+        "label": "소멸시효",
+       
+      },
+      {
+        "messageText": "제한능력자",
+        "action": "message",
+        "label": "제한능력자",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+# 손해배상 메뉴 
+@application.route("/api/sonbaemenu", methods=["POST"])
+def sonbaemenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "손해배상 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "공해",
+        "action": "message",
+        "label": "공해",
+       
+      },
+      {
+        "messageText": "기타 손해배상",
+        "action": "message",
+        "label": "기타 손해배상",
+       
+      },
+      {
+        "messageText": "범죄피해",
+        "action": "message",
+        "label": "범죄피해",
+       
+      },
+      {
+        "messageText": "불법사금융(보이스피싱)",
+        "action": "message",
+        "label": "불법사금융(보이스피싱)",
+       
+      },
+      {
+        "messageText": "산재사고",
+        "action": "message",
+        "label": "산재사고",
+       
+      },
+      {
+        "messageText": "성폭력피해(일반)",
+        "action": "message",
+        "label": "성폭력피해(일반)",
+       
+      },
+      {
+        "messageText": "의료과오",
+        "action": "message",
+        "label": "의료과오",
+       
+      },
+      {
+        "messageText": "자동차사고",
+        "action": "message",
+        "label": "자동차사고",
+       
+      },
+      {
+        "messageText": "지적소유권",
+        "action": "message",
+        "label": "지적소유권",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
+# 상가임대차메뉴 
+@application.route("/api/sanggamenu", methods=["POST"])
+def sanggamenu ():
+    response = {
+    "version": "2.0",
+        "template": {
+            "outputs": [
+            {
+            "simpleText": {
+                "text": "상가임대차 관련 정보입니다. 어떤정보가 필요하신가요?"
+                        }
+            }
+        ],
+     "quickReplies": [
+      {
+        "messageText": "계약갱신요구",
+        "action": "message",
+        "label": "계약갱신요구",
+       
+      },
+      {
+        "messageText": "권리금",
+        "action": "message",
+        "label": "권리금",
+       
+      },
+      {
+        "messageText": "임차보증금반환",
+        "action": "message",
+        "label": "임차보증금반환",
+       
+      }
+    ]  
+  } 
+}      
+    return jsonify(response)
+
 
 ## 주택임대차 6개 ##
 # 기타 주택임대차
@@ -386,7 +1478,7 @@ def littlemoney ():
         {
           "title":"소액임차인의 최우선변제권",
           "imageUrl":"https://mblogthumb-phinf.pstatic.net/MjAyMjA1MjBfMTUy/MDAxNjUzMDMwODc5ODcw.EY3quvGq6MHJyHrcwtyHqBsYyO0YMjQgs2xLdTvi-Asg.lPA7dO-1Xc0TCYXICxf6SzkJK2q9em4Ie0rUqDM7Oo4g.JPEG.sjkor1005/KakaoTalk_20220520_143304994.jpg?type=w800",
-          "description":"해임차보증금반환채권 부존재확인의 소",
+          "description":"임차보증금반환채권 부존재확인의 소",
           "linkUrl": {},
           "buttons":[
             {
@@ -525,7 +1617,9 @@ def housearch ():
 }  
     return jsonify(response)
 
-## 헌법 ##
+
+##헌법 ##
+
 # 헌법소원
 @application.route("/api/constitutionappeal", methods=["POST"])
 def constitutionappeal ():
@@ -545,14 +1639,14 @@ def constitutionappeal ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7ae8b7b449724be9af42425a723195af&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=47382ea69fa943b0b4b1a013adffe84e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
               "type":"url",
               "label":"법률상담/구조사례",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7ae8b7b449724be9af42425a723195af&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://casenote.kr/"
               }
             }
           ]
@@ -572,14 +1666,14 @@ def constitutionappeal ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7ae8b7b449724be9af42425a723195af&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=79bc5247e0c94be0be5e4fdb1ca70c3d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
               "type":"url",
               "label":"법률상담/구조사례",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7ae8b7b449724be9af42425a723195af&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://casenote.kr/"
               }
             }
           ]
@@ -601,14 +1695,14 @@ def constitutionappeal ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3e6583159a4141849945f8a41934ef7a&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=f517a3b24a9f40c0ad90db9edd111638&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
               "type":"url",
               "label":"법률상담/구조사례",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7ae8b7b449724be9af42425a723195af&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://casenote.kr/"
               }
             }
           ]
@@ -637,14 +1731,14 @@ def unconstitutional ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=598153618587486184935970c51ab45b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=412b016af48947ac9576e1ceac96d1bf&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
               {
               "type":"url",
               "label":"법률상담/구조사례",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=598153618587486184935970c51ab45b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://casenote.kr/"
               }
             }
           ]
@@ -653,1508 +1747,7 @@ def unconstitutional ():
     }
   ]
 }
-    return jsonify(response)    
-
-################################################################################메뉴테스트으
-
-# 헌법 메뉴
-@application.route("/api/constitutionmenu", methods=["POST"])
-def constitutionmenu():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "헌법 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "헌법소원",
-        "action": "message",
-        "label": "헌법소원",
-       
-      },
-      {
-        "messageText": "위헌법률심판",
-        "action": "message",
-        "label": "위헌법률심판"
-      },
-      {
-        "messageText": "헌법재판소법",
-        "action": "message",
-        "label": "헌법재판소법"
-      },
-      {
-        "messageText": "기타 헌법",
-        "action": "message",
-        "label": "기타 헌법"
-      }
-    ]  
-  } 
-}
-    return jsonify(response)
-
-# 채무자대리 메뉴
-@application.route("/api/chmumenu", methods=["POST"])
-def chmumenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "채무자 대리 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "채무자 대리",
-        "action": "message",
-        "label": "채무자 대리",
-       
-      }
-    ]  
-  } 
-}    
     return jsonify(response)   
-
-
-# 형사소송 메뉴
-@application.route("/api/brothercowmenu", methods=["POST"])
-def brothercowmenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "형사소송 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "고소와 고발",
-        "action": "message",
-        "label": "고소와 고발",
-       
-      },
-      {
-        "messageText": "기타 형사절차",
-        "action": "message",
-        "label": "기타 형사절차"
-      },
-      {
-        "messageText": "불기소처분 및 불복",
-        "action": "message",
-        "label": "불기소처분 및 불복"
-      },
-      {
-        "messageText": "상소",
-        "action": "message",
-        "label": "상소"
-      },
-      {
-        "messageText": "소년 및 가정보호사건",
-        "action": "message",
-        "label": "소년 및 가정보호사건"
-      },
-      {
-        "messageText": "소송절차 및 증거",
-        "action": "message",
-        "label": "소송절차 및 증거"
-      },
-      {
-        "messageText": "인신보호사건",
-        "action": "message",
-        "label": "인신보호사건"
-      },
-      {
-        "messageText": "재심, 약식절차",
-        "action": "message",
-        "label": "재심, 약식절차"
-      },
-      {
-        "messageText": "재판의 집행",
-        "action": "message",
-        "label": "재판의 집행"
-      },
-      {
-        "messageText": "체포, 구속 및 석방, 보석",
-        "action": "message",
-        "label": "체포, 구속 및 석방, 보석"
-      },
-      {
-        "messageText": "피해자변호(성폭력)",
-        "action": "message",
-        "label": "피해자변호(성폭력)"
-      },
-      {
-        "messageText": "피해자변호(아동학대)",
-        "action": "message",
-        "label": "피해자변호(아동학대)"
-      },
-      {
-        "messageText": "피해자변호(장애인학대)",
-        "action": "message",
-        "label": "피해자변호(장애인학대)"
-      }
-    ]  
-  } 
-}
-    return jsonify(response)
-
-# 행정메뉴
-@application.route("/api/administrationmenu", methods=["POST"])
-def administrationmenu():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "행정 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "건축 관련 행정",
-        "action": "message",
-        "label": "건축 관련 행정",
-       
-      },
-      {
-        "messageText": "교통 관련 행정",
-        "action": "message",
-        "label": "교통 관련 행정"
-      },
-      {
-        "messageText": "기타 행정",
-        "action": "message",
-        "label": "기타 행정"
-      },
-      {
-        "messageText": "난민 관련 행정",
-        "action": "message",
-        "label": "난민 관련 행정"
-      },
-      {
-        "messageText": "부동산 관련 행정",
-        "action": "message",
-        "label": "부동산 관련 행정"
-      },
-      {
-        "messageText": "산재 관련 행정",
-        "action": "message",
-        "label": "산재 관련 행정"
-      },
-      {
-        "messageText": "영업 관련 행정",
-        "action": "message",
-        "label": "영업 관련 행정"
-      },
-      {
-        "messageText": "유공자 관련 행정",
-        "action": "message",
-        "label": "유공자 관련 행정"
-      },
-      {
-        "messageText": "조세 관련 행정",
-        "action": "message",
-        "label": "조세 관련 행정"
-      },
-      {
-        "messageText": "행정소송일반",
-        "action": "message",
-        "label": "행정소송일반"
-      },
-      {
-        "messageText": "행정 심판",
-        "action": "message",
-        "label": "행정 심판"
-      }
-    ]  
-  } 
-}
-    return jsonify(response)
-
-# 형법메뉴
-@application.route("/api/brotherlawmenu", methods=["POST"])
-def brotherlawmenu():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "행정 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "강간과 추행의 죄",
-        "action": "message",
-        "label": "강간과 추행의 죄",
-       
-      },
-      {
-        "messageText": "공무방해에 관한 죄",
-        "action": "message",
-        "label": "공무방해에 관한 죄"
-      },
-      {
-        "messageText": "공무원의 직무에 관한 죄",
-        "action": "message",
-        "label": "공무원의 직무에 관한 죄"
-      },
-      {
-        "messageText": "교통사고처리특례법 위반죄",
-        "action": "message",
-        "label": "교통사고처리특례법 위반죄"
-      },
-      {
-        "messageText": "기타 범죄",
-        "action": "message",
-        "label": "기타 범죄"
-      },
-      {
-        "messageText": "도로교통법 위반죄",
-        "action": "message",
-        "label": "도로교통법 위반죄"
-      },
-      {
-        "messageText": "도박과 복표에 관한 죄",
-        "action": "message",
-        "label": "도박과 복표에 관한 죄"
-      },
-      {
-        "messageText": "명예에 관한 죄",
-        "action": "message",
-        "label": "명예에 관한 죄"
-      },
-      {
-        "messageText": "무고의 죄",
-        "action": "message",
-        "label": "무고의 죄"
-      },
-      {
-        "messageText": "문서에 관한 죄",
-        "action": "message",
-        "label": "문서에 관한 죄"
-      },
-      {
-        "messageText": "방화와 실화의 죄",
-        "action": "message",
-        "label": "방화와 실화의 죄"
-      },
-      {
-        "messageText": "병역법 위반죄",
-        "action": "message",
-        "label": "병역법 위반죄"
-      },
-      {
-        "messageText": "부정수표단속법 위반죄",
-        "action": "message",
-        "label": "부정수표단속법 위반죄"
-      },
-      {
-        "messageText": "사기와 공갈의 죄",
-        "action": "message",
-        "label": "사기와 공갈의 죄"
-      },
-      {
-        "messageText": "살인의 죄",
-        "action": "message",
-        "label": "살인의 죄"
-      },
-      {
-        "messageText": "상해와 폭행의 죄",
-        "action": "message",
-        "label": "상해와 폭행의 죄"
-      },
-      {
-        "messageText": "방화와 실화의 죄",
-        "action": "message",
-        "label": "방화와 실화의 죄"
-      },
-      {
-        "messageText": "선고유예, 집행유예, 가석방",
-        "action": "message",
-        "label": "선고유예, 집행유예, 가석방"
-      },
-      {
-        "messageText": "성풍속에 관한 죄",
-        "action": "message",
-        "label": "성풍속에 관한 죄"
-      },
-      {
-        "messageText": "손괴의 죄",
-        "action": "message",
-        "label": "손괴의 죄"
-      },
-      {
-        "messageText": "신용, 업무와 경매에 관한 죄",
-        "action": "message",
-        "label": "신용, 업무와 경매에 관한 죄"
-      },
-      {
-        "messageText": "아편에 관한 죄",
-        "action": "message",
-        "label": "아편에 관한 죄"
-      },
-      {
-        "messageText": "장물에 관한 죄",
-        "action": "message",
-        "label": "장물에 관한 죄"
-      },
-      {
-        "messageText": "절도와 강도의 죄",
-        "action": "message",
-        "label": "절도와 강도의 죄"
-      },
-      {
-        "messageText": "죄의 성립요건",
-        "action": "message",
-        "label": "죄의 성립요건"
-      },
-      {
-        "messageText": "주거침입의 죄",
-        "action": "message",
-        "label": "주거침입의 죄"
-      },
-      {
-        "messageText": "특정범죄가중처벌법 위반죄",
-        "action": "message",
-        "label": "특정범죄가중처벌법 위반죄"
-      },
-      {
-        "messageText": "폭력행위등처벌에 관한 법률 위반죄",
-        "action": "message",
-        "label": "폭력행위등처벌에 관한 법률 위반죄"
-      },
-      {
-        "messageText": "형벌",
-        "action": "message",
-        "label": "형벌"
-      },
-      {
-        "messageText": "횡령과 배임의 죄",
-        "action": "message",
-        "label": "횡령과 배임의 죄"
-      }
-    ]  
-  } 
-}
-    return jsonify(response)
-
-# 개인회생, 파산 및 면책메뉴
-@application.route("/api/personmenu", methods=["POST"])
-def personmenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "개인회생, 파산 및 면책 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "개인회생",
-        "action": "message",
-        "label": "개인회생",
-       
-      },
-      {
-        "messageText": "파산 및 면책",
-        "action": "message",
-        "label": "파산 및 면책",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)  
-
-
-
-# 보전처분 메뉴 
-@application.route("/api/bojeonmenu", methods=["POST"])
-def bojeonmenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "보전처분 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "가압류일반",
-        "action": "message",
-        "label": "가압류일반",
-       
-      },
-      {
-        "messageText": "가처분",
-        "action": "message",
-        "label": "가처분",
-       
-      },
-      {
-        "messageText": "기타 보전처분",
-        "action": "message",
-        "label": "기타 보전처분",
-       
-      },
-      {
-        "messageText": "부동산가압류",
-        "action": "message",
-        "label": "부동산가압류",
-       
-      },
-      {
-        "messageText": "채권가압류",
-        "action": "message",
-        "label": "채권가압류",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-# 민사집행 메뉴 
-@application.route("/api/minsagomenu", methods=["POST"])
-def minsagomenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "민사집행 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "강제집행일반",
-        "action": "message",
-        "label": "강제집행일반",
-       
-      },
-      {
-        "messageText": "금전채권 강제집행",
-        "action": "message",
-        "label": "금전채권 강제집행",
-       
-      },
-      {
-        "messageText": "기타 강제집행",
-        "action": "message",
-        "label": "기타 강제집행",
-       
-      },
-      {
-        "messageText": "부동산강제집행",
-        "action": "message",
-        "label": "부동산강제집행",
-       
-      },
-      {
-        "messageText": "압류금지채권범위변경",
-        "action": "message",
-        "label": "압류금지채권범위변경",
-       
-      },
-      {
-        "messageText": "유체동산 강제집행",
-        "action": "message",
-        "label": "유체동산 강제집행",
-       
-      },
-      {
-        "messageText": "자동차 등 강제집행",
-        "action": "message",
-        "label": "자동차 등 강제집행",
-       
-      },
-      {
-        "messageText": "재산명시 및 조회 등",
-        "action": "message",
-        "label": "재산명시 및 조회 등",
-       
-      },
-      {
-        "messageText": "집행에 있어서 구제",
-        "action": "message",
-        "label": "집행에 있어서 구제",
-       
-      },
-      {
-        "messageText": "집행의 정지, 제한 및 취소",
-        "action": "message",
-        "label": "집행의 정지, 제한 및 취소",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-# 가족관계등록 메뉴 
-@application.route("/api/familymenu", methods=["POST"])
-def familymenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "민사집행 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "가족관계등록부정정",
-        "action": "message",
-        "label": "가족관계등록부정정",
-       
-      },
-      {
-        "messageText": "가족관계등록창설",
-        "action": "message",
-        "label": "가족관계등록창설",
-       
-      },
-      {
-        "messageText": "국적의 취득과 상실",
-        "action": "message",
-        "label": "국적의 취득과 상실",
-       
-      },
-      {
-        "messageText": "기타 가족관계등록",
-        "action": "message",
-        "label": "기타 가족관계등록",
-       
-      },
-      {
-        "messageText": "성본창설과 개명",
-        "action": "message",
-        "label": "성본창설과 개명",
-       
-      },
-      {
-        "messageText": "신고",
-        "action": "message",
-        "label": "신고",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-# 가사소송 메뉴 
-@application.route("/api/familysomenu", methods=["POST"])
-def familysomenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "가사소송 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "가,나,다류 가사소송",
-        "action": "message",
-        "label": "가,나,다류 가사소송",
-       
-      },
-      {
-        "messageText": "가사소송일반",
-        "action": "message",
-        "label": "가사소송일반",
-       
-      },
-      {
-        "messageText": "과태료와 감치",
-        "action": "message",
-        "label": "과태료와 감치",
-       
-      },
-      {
-        "messageText": "기타",
-        "action": "message",
-        "label": "기타",
-       
-      },
-      {
-        "messageText": "담보제공명령 등",
-        "action": "message",
-        "label": "담보제공명령 등",
-       
-      },
-      {
-        "messageText": "라,마류 가사비송",
-        "action": "message",
-        "label": "라,마류 가사비송",
-       
-      },
-      {
-        "messageText": "양육비직접지급명령",
-        "action": "message",
-        "label": "양육비직접지급명령",
-       
-      },
-      {
-        "messageText": "이행명령",
-        "action": "message",
-        "label": "이행명령",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-
-# 상속 메뉴 
-@application.route("/api/sangsokmenu", methods=["POST"])
-def sangsokmenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "상속 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "기타상속",
-        "action": "message",
-        "label": "기타상속",
-       
-      },
-      {
-        "messageText": "상속분",
-        "action": "message",
-        "label": "상속분",
-       
-      },
-      {
-        "messageText": "상속순위",
-        "action": "message",
-        "label": "상속순위",
-       
-      },
-      {
-        "messageText": "상속일반",
-        "action": "message",
-        "label": "상속일반",
-       
-      },
-      {
-        "messageText": "상속재산분할",
-        "action": "message",
-        "label": "상속재산분할",
-       
-      },
-      {
-        "messageText": "유류분",
-        "action": "message",
-        "label": "유류분",
-       
-      },
-      {
-        "messageText": "유언",
-        "action": "message",
-        "label": "유언",
-       
-      },
-      {
-        "messageText": "한정승인 및 상속포기",
-        "action": "message",
-        "label": "한정승인 및 상속포기",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-# 친족 메뉴 
-@application.route("/api/relationmenu", methods=["POST"])
-def relationmenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "친족 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "기타 친족",
-        "action": "message",
-        "label": "기타 친족",
-       
-      },
-      {
-        "messageText": "면접교섭권",
-        "action": "message",
-        "label": "면접교섭권",
-       
-      },
-      {
-        "messageText": "부양",
-        "action": "message",
-        "label": "부양",
-       
-      },
-      {
-        "messageText": "약혼",
-        "action": "message",
-        "label": "약혼",
-       
-      },
-      {
-        "messageText": "양육비",
-        "action": "message",
-        "label": "양육비",
-       
-      },
-      {
-        "messageText": "이혼 및 위자료",
-        "action": "message",
-        "label": "이혼 및 위자료",
-       
-      },
-      {
-        "messageText": "이혼 및 재산분할청구권",
-        "action": "message",
-        "label": "이혼 및 재산분할청구권",
-       
-      },
-      {
-        "messageText": "인지 등",
-        "action": "message",
-        "label": "인지 등",
-       
-      },
-      {
-        "messageText": "입양, 파양, 친양자",
-        "action": "message",
-        "label": "입양, 파양, 친양자",
-       
-      },
-      {
-        "messageText": "재판상이혼 등",
-        "action": "message",
-        "label": "재판상이혼 등",
-       
-      },
-      {
-        "messageText": "친권",
-        "action": "message",
-        "label": "친권",
-       
-      },
-      {
-        "messageText": "친생자",
-        "action": "message",
-        "label": "친생자",
-       
-      },
-      {
-        "messageText": "협의이혼",
-        "action": "message",
-        "label": "협의이혼",
-       
-      },
-      {
-        "messageText": "혼인의 성립, 무효, 취소",
-        "action": "message",
-        "label": "혼인의 성립, 무효, 취소",
-       
-      },
-      {
-        "messageText": "후견인",
-        "action": "message",
-        "label": "후견인",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-# 민사소송 메뉴 
-@application.route("/api/minsasosongmenu", methods=["POST"])
-def minsasosongmenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "민사소송 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "간이소송절차",
-        "action": "message",
-        "label": "간이소송절차",
-       
-      },
-      {
-        "messageText": "관할",
-        "action": "message",
-        "label": "관할",
-       
-      },
-      {
-        "messageText": "기타 민사소송",
-        "action": "message",
-        "label": "기타 민사소송",
-       
-      },
-      {
-        "messageText": "당사자",
-        "action": "message",
-        "label": "당사자",
-       
-      },
-      {
-        "messageText": "상소",
-        "action": "message",
-        "label": "상소",
-       
-      },
-      {
-        "messageText": "소송비용",
-        "action": "message",
-        "label": "소송비용",
-       
-      },
-      {
-        "messageText": "소송비용상대방상환",
-        "action": "message",
-        "label": "소송비용상대방상환",
-       
-      },
-      {
-        "messageText": "소송절차",
-        "action": "message",
-        "label": "소송절차",
-       
-      },
-      {
-        "messageText": "재심",
-        "action": "message",
-        "label": "재심",
-       
-      },
-      {
-        "messageText": "증거",
-        "action": "message",
-        "label": "증거",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-# 상사 메뉴 
-@application.route("/api/bossmenu", methods=["POST"])
-def bossmenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "상사 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "기타 상사",
-        "action": "message",
-        "label": "기타 상사",
-       
-      },
-      {
-        "messageText": "보험",
-        "action": "message",
-        "label": "보험",
-       
-      },
-      {
-        "messageText": "상사일반",
-        "action": "message",
-        "label": "상사일반",
-       
-      },
-      {
-        "messageText": "어음,수표",
-        "action": "message",
-        "label": "어음,수표",
-       
-      },
-      {
-        "messageText": "회사",
-        "action": "message",
-        "label": "회사",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-# 계약메뉴 
-@application.route("/api/trademenu", methods=["POST"])
-def trademenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "계약 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "계약금",
-        "action": "message",
-        "label": "계약금",
-       
-      },
-      {
-        "messageText": "계약의 해지 해제",
-        "action": "message",
-        "label": "계약의 해지 해제",
-       
-      },
-      {
-        "messageText": "계약 일반",
-        "action": "message",
-        "label": "계약 일반",
-       
-      },
-      {
-        "messageText": "기타 계약",
-        "action": "message",
-        "label": "기타 계약",
-       
-      },
-      {
-        "messageText": "대여금 등",
-        "action": "message",
-        "label": "대여금 등",
-       
-      },
-      {
-        "messageText": "도급",
-        "action": "message",
-        "label": "도급",
-       
-      },
-      {
-        "messageText": "매매",
-        "action": "message",
-        "label": "매매",
-       
-      },
-      {
-        "messageText": "부동산중개",
-        "action": "message",
-        "label": "부동산중개",
-       
-      },
-      {
-        "messageText": "여행계약",
-        "action": "message",
-        "label": "여행계약",
-       
-      },
-      {
-        "messageText": "위임",
-        "action": "message",
-        "label": "위임",
-       
-      },
-      {
-        "messageText": "임대차",
-        "action": "message",
-        "label": "임대차",
-       
-      },
-      {
-        "messageText": "조합과 계",
-        "action": "message",
-        "label": "조합과 계",
-       
-      },
-      {
-        "messageText": "할부거래 및 방문판매,신용카드",
-        "action": "message",
-        "label": "할부거래 및 방문판매,신용카드",
-       
-      },
-      {
-        "messageText": "화해",
-        "action": "message",
-        "label": "화해",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-#  채권메뉴 
-@application.route("/api/chaemenu", methods=["POST"])
-def chaemenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "채권 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "기타 채권",
-        "action": "message",
-        "label": "기타 채권",
-       
-      },
-      {
-        "messageText": "부당이득",
-        "action": "message",
-        "label": "부당이득",
-       
-      },
-      {
-        "messageText": "연대채무,보증채무",
-        "action": "message",
-        "label": "연대채무,보증채무",
-       
-      },
-      {
-        "messageText": "채권양도",
-        "action": "message",
-        "label": "채권양도",
-       
-      },
-      {
-        "messageText": "채권의 소멸(공탁 등)",
-        "action": "message",
-        "label": "채권의 소멸(공탁 등)",
-       
-      },
-      {
-        "messageText": "채권자대위권",
-        "action": "message",
-        "label": "채권자대위권",
-       
-      },
-      {
-        "messageText": "채권자취소권",
-        "action": "message",
-        "label": "채권자취소권",
-       
-      },
-      {
-        "messageText": "채무인수",
-        "action": "message",
-        "label": "채무인수",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-
-# 물권 메뉴 
-@application.route("/api/mulmenu", methods=["POST"])
-def mulmenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "물권 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "공동소유",
-        "action": "message",
-        "label": "공동소유",
-       
-      },
-      {
-        "messageText": "기타 물권",
-        "action": "message",
-        "label": "기타 물권",
-       
-      },
-      {
-        "messageText": "물권의 변동(부동산등기 등)",
-        "action": "message",
-        "label": "물권의 변동(부동산등기 등)",
-       
-      },
-      {
-        "messageText": "상린관계",
-        "action": "message",
-        "label": "상린관계",
-       
-      },
-      {
-        "messageText": "소유권",
-        "action": "message",
-        "label": "소유권",
-       
-      },
-      {
-        "messageText": "소유권에 기한 물권적 청구권",
-        "action": "message",
-        "label": "소유권에 기한 물권적 청구권",
-       
-      },
-      {
-        "messageText": "유치권과 질권",
-        "action": "message",
-        "label": "유치권과 질권",
-       
-      },
-      {
-        "messageText": "저당권",
-        "action": "message",
-        "label": "저당권",
-       
-      },
-      {
-        "messageText": "점유권",
-        "action": "message",
-        "label": "점유권",
-       
-      },
-      {
-        "messageText": "지상권과 전세권",
-        "action": "message",
-        "label": "지상권과 전세권",
-       
-      },
-      {
-        "messageText": "취득시효",
-        "action": "message",
-        "label": "취득시효",
-       
-      
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-
-# 민사일반 메뉴 
-@application.route("/api/minsa1menu", methods=["POST"])
-def minsa1menu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "민사일반 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "대리",
-        "action": "message",
-        "label": "대리",
-       
-      },
-      {
-        "messageText": "법률행위일반",
-        "action": "message",
-        "label": "법률행위일반",
-       
-      },
-      {
-        "messageText": "부재, 실종",
-        "action": "message",
-        "label": "부재, 실종",
-       
-      },
-      {
-        "messageText": "소멸시효",
-        "action": "message",
-        "label": "소멸시효",
-       
-      },
-      {
-        "messageText": "제한능력자",
-        "action": "message",
-        "label": "제한능력자",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-# 손해배상 메뉴 
-@application.route("/api/sonbaemenu", methods=["POST"])
-def sonbaemenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "손해배상 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "공해",
-        "action": "message",
-        "label": "공해",
-       
-      },
-      {
-        "messageText": "국가배상",
-        "action": "message",
-        "label": "국가배상",
-       
-      },
-      {
-        "messageText": "기타 손해배상",
-        "action": "message",
-        "label": "기타 손해배상",
-       
-      },
-      {
-        "messageText": "범죄피해",
-        "action": "message",
-        "label": "범죄피해",
-       
-      },
-      {
-        "messageText": "불법사금융(보이스피싱)",
-        "action": "message",
-        "label": "불법사금융(보이스피싱)",
-       
-      },
-      {
-        "messageText": "산재사고",
-        "action": "message",
-        "label": "산재사고",
-       
-      },
-      {
-        "messageText": "성폭력피해(데이트)",
-        "action": "message",
-        "label": "성폭력피해(데이트)",
-       
-      },
-      {
-        "messageText": "성폭력피해(스토킹)",
-        "action": "message",
-        "label": "성폭력피해(스토킹)",
-       
-      },
-      {
-        "messageText": "성폭력피해(일반)",
-        "action": "message",
-        "label": "성폭력피해(일반)",
-       
-      },
-      {
-        "messageText": "소비자피해",
-        "action": "message",
-        "label": "소비자피해",
-       
-      },
-      {
-        "messageText": "손해배상 일반",
-        "action": "message",
-        "label": "손해배상 일반",
-       
-      },
-      {
-        "messageText": "아동학대",
-        "action": "message",
-        "label": "아동학대",
-       
-      },
-      {
-        "messageText": "의료과오",
-        "action": "message",
-        "label": "의료과오",
-       
-      },
-      {
-        "messageText": "자동차사고",
-        "action": "message",
-        "label": "자동차사고",
-       
-      },
-      {
-        "messageText": "지적소유권",
-        "action": "message",
-        "label": "지적소유권",
-       
-      },
-      {
-        "messageText": "학교폭력피해",
-        "action": "message",
-        "label": "학교폭력피해",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-# 상가임대차메뉴 
-@application.route("/api/sanggamenu", methods=["POST"])
-def sanggamenu ():
-    response = {
-    "version": "2.0",
-        "template": {
-            "outputs": [
-            {
-            "simpleText": {
-                "text": "상가임대차 관련 정보입니다. 어떤정보가 필요하신가요?"
-                        }
-            }
-        ],
-     "quickReplies": [
-      {
-        "messageText": "계약갱신요구",
-        "action": "message",
-        "label": "계약갱신요구",
-       
-      },
-      {
-        "messageText": "권리금",
-        "action": "message",
-        "label": "권리금",
-       
-      },
-      {
-        "messageText": "기타 상가임대차",
-        "action": "message",
-        "label": "기타 상가임대차",
-       
-      },
-      {
-        "messageText": "대항력",
-        "action": "message",
-        "label": "대항력",
-       
-      },
-      {
-        "messageText": "상가임대차분쟁조정",
-        "action": "message",
-        "label": "상가임대차분쟁조정",
-       
-      },
-      {
-        "messageText": "소액임차인의 최우선변제권",
-        "action": "message",
-        "label": "소액임차인의 최우선변제권",
-       
-      },
-      {
-        "messageText": "우선변제권",
-        "action": "message",
-        "label": "우선변제권",
-       
-      },
-      {
-        "messageText": "임대차기간",
-        "action": "message",
-        "label": "임대차기간",
-       
-      },
-      {
-        "messageText": "임차권등기명령",
-        "action": "message",
-        "label": "임차권등기명령",
-       
-      },
-      {
-        "messageText": "임차보증금, 차임 증감",
-        "action": "message",
-        "label": "임차보증금, 차임 증감",
-       
-      },
-      {
-        "messageText": "임차보증금반환",
-        "action": "message",
-        "label": "임차보증금반환",
-       
-      },
-      {
-        "messageText": "적용범위",
-        "action": "message",
-        "label": "적용범위",
-       
-      }
-    ]  
-  } 
-}      
-    return jsonify(response)
-
-
 
 ## 상사 4개##
 # 보험
@@ -2175,8 +1768,8 @@ def insurance ():
             {
               "type":"url",
               "label":"법률서식",
-              "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3056af8cbf5b453b87cf18a6135a81aa&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+              "data":{ 
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=320172f7121c46498d5a6de78e6f72dc&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2214,7 +1807,7 @@ def boss1ban ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a9a7f89d46ec4f618a245a22156fbf4b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=180834c607484f8088e3f674a8b88b50&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2252,7 +1845,7 @@ def umm ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=5c0c7e9a0036487d9dd018e86f84f3d5&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=668e1f64b4d140a8bfd44abd1c60f455&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2290,7 +1883,7 @@ def hell ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=c697b65e6b244867abcdf02431eebf48&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=59180e69999b4fd684e2c21113051baa&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2329,7 +1922,7 @@ def etcchaekwon ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=106e4a26c4304a6c9c1629d5e847db85&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=094b48c7019641c1aa16143bf7fc4051&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2367,7 +1960,7 @@ def budang2 ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=c6642bd16d5a4059a32d2950873bcf6e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=55d11b7a3138451c9d081c7004f72067&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2405,7 +1998,7 @@ def imchaemu ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=42ba2c2ee62b450584c3d3821828689a&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6e09643aa56d417085e448c7d0417b4d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2443,7 +2036,7 @@ def sheepdo ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=2230876c63d4497a82d16c93d8f98d19&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=e4a9e3f3d0464b8795b80f5dea7c04c0&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2481,7 +2074,7 @@ def chaekwonbye ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=af177e2f45e34ff2903b4fa2b6d4cfe0&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=76792060d058419db63b865fd40885f2&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2519,7 +2112,7 @@ def cancel ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=812c114274594a7a98d4fa89457dbef2&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=52a57c01b3e94b57a5cc72a967ef19ec&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2557,7 +2150,7 @@ def getchaemu ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=86ebd0ff40ab4b8fb5d22229351d3229&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=489d798542254af38e3c4360f44da8fe&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2574,7 +2167,6 @@ def getchaemu ():
   ]
 }  
     return jsonify(response)
-
 
 
 ## 계약 12개 ##
@@ -2597,7 +2189,7 @@ def cmoney ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=63dc1783490d4f54948a9a9163d4068a&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=cda2343461754185812c50a61b77dba9&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2634,7 +2226,7 @@ def cbye ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=79fd77050eb24b9b96dc52ac211b033c&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=97cc6192cbd240ecadec17a5b5be39bc&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2665,14 +2257,14 @@ def etccontract ():
         {
           "title":"기타 계약",
           "imageUrl":"https://mblogthumb-phinf.pstatic.net/MjAyMjA1MjBfNjcg/MDAxNjUzMDMwODgwMTU5.1l_mDrtY9go2_fXu2ANXs18-v7xMrX_paFPOy9lRrd8g.2wBf9mPasQgjyeGUxUYhTSEFlwswCN2AysUTC5CVyCcg.JPEG.sjkor1005/KakaoTalk_20220520_150956609.jpg?type=w800",
-          "description":"특허궈늬 토상실시권 설정계약서",
+          "description":"특허권의 통상실시권 설정계약서",
           "linkUrl": {},
           "buttons":[
             {
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d073959f5dcf4bbdb66fbd9d4d1613e1&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=2d5c85ac4cb7454397392b776c9c57e2&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2710,7 +2302,7 @@ def loan ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=59b8c03c78f54092bc2fa3ee895ca9ed&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=e78973e7f8f44b819b9efc5d107e4eac&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2748,7 +2340,7 @@ def subcontract ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=ef25e8a71b554a4fa436f84b903f38ce&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=59b4ab97d1ae46e890bc726f9899dc25&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2786,7 +2378,7 @@ def dealing ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=0fe786099b7948cbbd437d265529cf9f&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=e16058eea45e4f0e841d0eab24ed5435&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2824,7 +2416,7 @@ def mediation ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=85c3aaea03e24a90af02a4c96cbcd75e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=309eb22a6a284066917c1c767de27be4&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2862,7 +2454,7 @@ def mandate ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d47d3e6476e443d88b67e43d96d5af0b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a7a79921c3ca41ffa6d128a0126a65f7&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2900,7 +2492,7 @@ def imdaecar ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=caf2b60185e5456babacd3bd2cb6fdf3&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=c85749d3bd44495191e81b5b0c9bb40e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2938,7 +2530,7 @@ def johab ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=eb916a5069634445b8a01e06268c2ff4&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=9bbb56520cfe4512902bac54b02075f9&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -2976,7 +2568,7 @@ def credit ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=1a7b9a3eb90543ab81c8bac67a764a6b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=38489078f0534b8f8db726d9ecf7750d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3013,7 +2605,7 @@ def reconciliation ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d64d4b47a8fa47c8b3c2add0fddaac6a&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3fcc9d7cf476477381e6ca81d4bf8a55&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3030,7 +2622,6 @@ def reconciliation ():
   ]
 }  
     return jsonify(response)
-
 
 
 ## 민사소송 9개 ##
@@ -3053,7 +2644,7 @@ def minsagan2 ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a2a35250575a40649d40bc3c4d1cab99&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=64b993fd7fbe42f2bffd1b61eba2f25d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3091,7 +2682,7 @@ def gwanhal ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=dee05a3678fb4b2e958e42ab37f45c46&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6c77884132d7472fa98d0a74fdb97764&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3129,7 +2720,7 @@ def etcminsa1 ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=16821f48f7d6481b8154ec105b97e1c4&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=50b41977c7b740e9b714a626a93e4788&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3167,7 +2758,7 @@ def danglion ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=59d4a3311b0945f5872f76fe82086cc5&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=2b24cab0e47945b3bca0dea5e9fc11bd&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3205,7 +2796,7 @@ def minsaupcow ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3f1531d32c104a90a9e7f911d7a51ff4&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7cc4919c6cd34a8fb2fde694342c06a6&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3243,7 +2834,7 @@ def sosongmoney ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=dd532d971c3f46f6b0b5d51ffc846317&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3d73c917cc6e468898741e16696794f8&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3281,7 +2872,7 @@ def sosongmenual ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=303afb98da0d4f58b22b61f84532f0ca&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b090a85601734398924c618cc7497654&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3319,7 +2910,7 @@ def againsim ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6e341607e4094388b3b90cfc1ad0319b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7ca7a2156fb14f4fb63e33ab078aa5e7&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3357,7 +2948,7 @@ def evidence ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=afba03e0a5184e608b6f646373533bfd&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=78bcd2750aaf430181c51c1a4fbb3184&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3396,7 +2987,7 @@ def togethermul ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=8143c36542934ddfbf5fbc81acba3f7e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=9e97e78f8e2042338cc83d27aa09a614&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3434,7 +3025,7 @@ def etcmulkwon ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=69a02bf0301c4983a1bb0741c7f73e57&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6a25be879f074e9eb64a8b2319ac4bb5&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3472,7 +3063,7 @@ def mulchange ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=5871291ef3bb41eea60fcd5cf046ee4c&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=740835ee9d4c447b9bc13aee9cb31eab&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3510,7 +3101,7 @@ def sangrin ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=bb5fc18495624428baf3c6ddd4fb8cf2&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=4d59d3f8c97a40eba7c6249f565cac66&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3548,7 +3139,7 @@ def cowyou ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=f2e5074835d44f2199da9aad309050ac&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=cc2b09da7ac64c969552cf125e017056&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3586,7 +3177,7 @@ def cowyoumul ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fe294aa2e3b14e2a96a36a0ebfa866a3&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=78228593e5ba41beb585885c19baa535&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3617,14 +3208,14 @@ def jeodang ():
         {
           "title":"저당권",
           "imageUrl":"https://mblogthumb-phinf.pstatic.net/MjAyMjA1MjBfNDYg/MDAxNjUzMDMwODgwMDQz.ZEtfPtFJWuk8x2S5CJmzC4bKDq69JDLSCCAzsfCRMo0g.LXLYL_ULYoJK4dlRIMMV22ACLf-I4WDiCOt_8bbV0Rsg.JPEG.sjkor1005/KakaoTalk_20220520_150455625.jpg?type=w800",
-          "description":"근저당권말소등기의 회복등기절차이행청구 등의 소",
+          "description":"저당권설정 계약서",
           "linkUrl": {},
           "buttons":[
             {
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=f0341e53f91145a3bde72bb70c80e7d3&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7e684d568d54490abd6c940e3fdb317d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3662,7 +3253,7 @@ def jeomu ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=530bec9d1ef746f5879720a5df987d8d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=387dd864722c484ea7745bcd1025f0b2&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3700,7 +3291,7 @@ def onkwon ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6b5c1e0024104c56a9c6b6a549ee5834&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=5c9472460a0b4bc4838d9bf023788d15&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3731,14 +3322,14 @@ def sihyo ():
         {
           "title":"취득시효",
           "imageUrl":"https://mblogthumb-phinf.pstatic.net/MjAyMjA1MjBfNDYg/MDAxNjUzMDMwODgwMDQz.ZEtfPtFJWuk8x2S5CJmzC4bKDq69JDLSCCAzsfCRMo0g.LXLYL_ULYoJK4dlRIMMV22ACLf-I4WDiCOt_8bbV0Rsg.JPEG.sjkor1005/KakaoTalk_20220520_150455625.jpg?type=w800",
-          "description":"소우권이전등기청구의 소(국유 일반재산 점유취득)",
+          "description":"소유권이전등기청구의 소(국유 일반재산 점유취득)",
           "linkUrl": {},
           "buttons":[
             {
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=680c3a79f5d741ef905ed904b9bf29d1&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=743bf657b0484249acc2ad0f9edd3355&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3755,7 +3346,6 @@ def sihyo ():
   ]
 }  
     return jsonify(response)
-
 
 ## 형사소송 10개 ##
 # 고소 고발
@@ -3777,7 +3367,7 @@ def secret ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3065a00610474992afb8026fa8c98579&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7ef68a2d6f724150b05b0da8f0fc7873&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3815,7 +3405,7 @@ def etcbrothersa ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fe603e0c56b243cf87aa81883594cd77&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a8eeb0a3958c4d23a360d0e0130d27b0&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3853,7 +3443,7 @@ def firecow ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=323fb110b58140b08785ddebca353891&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=de8accb841334e09b10cfd3c9431e4d6&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3891,7 +3481,7 @@ def upso ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=ea42d1df5643497b8edccb448765e42e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d5bf4df34281471d8ed5ab34acdbc461&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3929,7 +3519,7 @@ def boyand ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=96689c6c47ca40e489e3c791a6299847&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6ba8de0ec3bb4500ac521652edc806f1&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -3967,7 +3557,7 @@ def sosongevidence ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=c32fd44538264ecb9d0a0c170c5dc39c&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=e30def2ec2db4aecb04629db0f6733a0&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4005,7 +3595,7 @@ def insinboho ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d487c1185c6d46998bc4309bb1aecea2&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=5cf960297ed94f0bb561143ea932618b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4043,7 +3633,7 @@ def jaesimmanual ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=db3c9dacff134600a961b3e6010a05c4&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fa82a255747a4b62b66b3573759fd539&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4081,7 +3671,7 @@ def jibhang ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b9531b7551254f44814d1d92017179db&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=293d02cb845944a882c6b8e859081d56&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4119,7 +3709,7 @@ def arrest ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=4f0e0ac50d33469bb16dd2ac823cbc19&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a8af82edb8634b2fa14ac3d1567eaffb&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4136,7 +3726,6 @@ def arrest ():
   ]
 }  
     return jsonify(response)
-
 
 
 
@@ -4160,7 +3749,7 @@ def rape ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=9b6e21f08b234ae3881f84ded8b05119&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=f3acfa39942c4339ba0d39dafa34c125&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4191,14 +3780,14 @@ def banghae ():
         {
           "title":"공무방해에 관한 죄",
           "imageUrl":"https://mblogthumb-phinf.pstatic.net/MjAyMjA1MjBfNDkg/MDAxNjUzMDMwODgwNzY3.q2zxowJ7byvF3ZSN0Uj7WguAaP_-g-2brbLJdolaDlwg.-MTnx2yqFMDIjckwXpAqUsdMLBlwv7OiFfcMzDHMqJwg.JPEG.sjkor1005/KakaoTalk_20220520_160557016.jpg?type=w800",
-          "description":"공부상비밀표시무효죄",
+          "description":"공무상비밀표시무효죄",
           "linkUrl": {},
           "buttons":[
             {
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=f8d92e85bad147b4ad85e3c7ba5565f2&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=270d6c59391b4c4eabbcc2c866d5991e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4235,7 +3824,7 @@ def gongmu1 ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fc69c4897e854f348deb4fa7e95dbd4b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=263528c8c4df4ca6a3d5abd5ced80982&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4272,7 +3861,7 @@ def fruit ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=8efc67a42e8144b8b1d6bcd2abd5746c&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b58d5fe904dc464b904788ad0113ef62&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4309,7 +3898,7 @@ def gyotong ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a9315a6e019f4f65b70829ca50c572fa&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=15fdf655f72a4c4d9da3188c0c90307b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4347,7 +3936,7 @@ def myungyeah ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a5c6b090bf1b4aceb144c728ed6ea48e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=8dce60f87cd54cde8ff21ef2ad972d16&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4384,7 +3973,7 @@ def mugo ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6750342bc2bc4cbebc611e66c4c1fd98&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=24a67d343d244384ba30a836337f6f3b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4422,7 +4011,7 @@ def doorup ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3ae3437ed5aa4ef18647d7c2cd910f5a&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=8379327ae49d464baa9f8707248c3e45&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4460,7 +4049,7 @@ def fire ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=2879bc6143d64418b6c34314850fcd09&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=955036d13e8f42f8992c08cead6a4cb9&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4498,7 +4087,7 @@ def cheater ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=4faa1fbc091440c7b6aa4e404eae1518&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=40c6241e60ef43a1a0e8d423a694c931&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4536,7 +4125,7 @@ def murder ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=50ab631c1e214e9780a309f599101f0c&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=bf85acf3e00145f5914baa5670b8d331&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4573,7 +4162,7 @@ def hit ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d9b6d04839054b7a9153567584ae0a38&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=0eda475e89b94f91a5d2af5984fcb2a5&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4612,7 +4201,7 @@ def gonghae ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=1ca4d95e091048f88d3d89d77797854c&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=60be68b8c57b4d31b2c7fce47d366828&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4649,7 +4238,7 @@ def etccompensation ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=114a8ab958f74df59c5796668a30ef51&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=702a89c9e33b4f59ac53a049889fbb68&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4679,14 +4268,14 @@ def criminal ():
         {
           "title":"범죄피해",
           "imageUrl":"https://mblogthumb-phinf.pstatic.net/MjAyMjA1MjBfMjI1/MDAxNjUzMDMwODc5ODk1.MyrLpEd4CufvgwFR1E2c_zl34r8wxUz1bEvXvRvSKw4g.0KsSmolLQZ5DHjO3TrSW92WC2opmmnUGgcx0MhN-CwUg.JPEG.sjkor1005/KakaoTalk_20220520_145354742.jpg?type=w800",
-          "description":"손해배상(공)청구의 소(기름유출)",
+          "description":"손해배상(공)청구의 소(협박)",
           "linkUrl": {},
           "buttons":[
             {
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b508eb76287e4cd3b3a37ed1927097a8&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=1cf3d5ed37374519ae2812717bd7e5f9&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4723,7 +4312,7 @@ def voice ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=98b1343a8c184250962e515526d07900&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=015787c1051c4e198668a553345588bf&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4760,7 +4349,7 @@ def accident ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=503222927ec04e3d994db89d9d8995a7&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=5d41f5462d1b49a4a5af929f5855a0cc&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4797,7 +4386,7 @@ def violence ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=5de0c82c32744d468f2c8a11c001caad&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=75d2c947c0094a76a0b32cefd7dff817&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4834,7 +4423,7 @@ def doctor ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b8b795af34f14e1fa6b8d2d8ad77d92e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=de912ec8349d40ca90352e3e36a77642&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4871,7 +4460,7 @@ def car ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=8c68bcf559604b98aabb56f8c7036f4a&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=204869758823486eae79210fbb1941ce&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4901,14 +4490,14 @@ def ownership ():
         {
           "title":"지적소유권",
           "imageUrl":"https://mblogthumb-phinf.pstatic.net/MjAyMjA1MjBfMjI1/MDAxNjUzMDMwODc5ODk1.MyrLpEd4CufvgwFR1E2c_zl34r8wxUz1bEvXvRvSKw4g.0KsSmolLQZ5DHjO3TrSW92WC2opmmnUGgcx0MhN-CwUg.JPEG.sjkor1005/KakaoTalk_20220520_145354742.jpg?type=w800",
-          "description":"손해배상(의)청구의 소(출산 중 사고, 장해발생, 채무불이행책임)",
+          "description":"손해배상(의)청구의 소(저작권 침해)",
           "linkUrl": {},
           "buttons":[
             {
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6e3623012c174f578c6050a0f4d2b6a0&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=8e1b34e037e04502b00fcb05caf325e6&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4925,8 +4514,6 @@ def ownership ():
   ]
 }  
     return jsonify(response)
-
-
 
 ## 친족 6개 ##
 # 입양,파양,친양자 / 재판상이혼 / 친권 / 친생자 / 협의이혼 / 혼인의성립~/후견인 없음
@@ -4949,7 +4536,7 @@ def meetplz ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=ed45cc25fdda44e4a5cde8df9833ef9e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=07b107fe376d4b1bad8f79130d9d1034&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -4986,7 +4573,7 @@ def parent ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=290b1ad4b25d4d79a57a8c61b0224d50&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3c240f18fe6c41e98c2a3663b444ab86&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5023,7 +4610,7 @@ def yakkon ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=863a8b3dbb4149b1845c0742f2b8f516&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fc695bc39a1541778c92f155ecc0f73b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5061,7 +4648,7 @@ def childmoney ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=555b0fc204824375b24a50c1a5e69f75&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=577b82e32e844623862da7d09a4438bb&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5099,7 +4686,7 @@ def devomoney ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=bb70c798c7bf40df8f812cc24c2a195f&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b630bb4dd845490883518f251ef241ae&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5137,7 +4724,7 @@ def devoshare ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fe88f43be2b64f5397cf8c09e9e0867f&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b5672ff47265455a97ba6c862c54341a&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5154,8 +4741,6 @@ def devoshare ():
   ]
 }  
     return jsonify(response)
-
-
 
 ## 가족관계등록 4개 ##
 # 가족관계등록부정정
@@ -5177,7 +4762,7 @@ def fchange ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=235720e1733642548825f7ff3de66af3&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=888037d05726488f8eb4d29fab256bfd&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5214,7 +4799,7 @@ def fmake ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=12386bdb7f6e4d51bf9d7fb99e8edd2e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=784c1257d8224f1983b530824ba30c4e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5251,7 +4836,7 @@ def nation ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=4c379d83a33246c783dabefd51bcaad0&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b8f3942aacda454a938989c50a149da2&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5288,7 +4873,7 @@ def tell ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=be2804c5d70a44a0bac42444b0bc3ff5&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=655c677604f14a17ada3f1762ddfac17&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5305,8 +4890,6 @@ def tell ():
   ]
 }  
     return jsonify(response)
-
-
 
 
 ## 가사소송 4개 ##
@@ -5329,7 +4912,7 @@ def fsosong ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=ff068b02e97644aba8aef53bcc93f6e8&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=f2733558278a4a038eff25e7675bc02d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5368,7 +4951,7 @@ def fsosong1ban ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fb7b61b987674c52a91469bf858df174&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7a16dd1df94749508ccf5aa2a927a309&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5406,7 +4989,7 @@ def gamchi ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=cb3a8e0e03f346a28f12951a0903fafb&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=33f5da7315ac4503b0e39a57e8bfefec&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5444,7 +5027,7 @@ def etcfsosong ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=ba3790215f434f41a3b85e06ce83f27d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=911d141c3bda454489067173355818f2&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5461,9 +5044,6 @@ def etcfsosong ():
   ]
 }  
     return jsonify(response)
-
-
-
 
 
 ## 행정 11개 ##
@@ -5486,7 +5066,7 @@ def archhaeng ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=ee54a98ae08b41d9bd4663e86eb13aeb&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d2d8c2381d6b4eca98161392c1742d1f&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5551,7 +5131,7 @@ def carhaeng ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=873af615f5b74926a7b5e7022e543647&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3915ab8b88914229acb4a9a8422dbadb&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5589,7 +5169,7 @@ def etchaeng ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=330034a7a382431da7300061bbf22c07&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=1842373d1c9848f9a76fccd51baee827&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5654,7 +5234,7 @@ def nanminhaeng ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=7b78de1409604bd492c257aa174731ac&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d28e27b69a3d45098b5ebe41ab7fd02e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5692,7 +5272,7 @@ def budongsanhaeng ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=4112ed0b667a42ef987b8c1afbaf34db&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=51a9b96541d54f30900aa0e3bbfb3b50&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5731,7 +5311,7 @@ def sanjaehaeng ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=01cad21d29f74a7a8821c0dc34610318&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a00cf5941e274d638674d191021f9034&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5768,7 +5348,7 @@ def up0haeng ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=bb634e95b0c644b1934aa33b11152b99&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=5015d95281c6413bb75de83d3220016e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5805,7 +5385,7 @@ def honorhaeng ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=960c1d0d7eb74cc982ae684248c2df28&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=2e6250be23a447afbe21fb4f59a5bc33&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5842,7 +5422,7 @@ def jobirdhaeng ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=4f0ceb1fe865455dbfb56ebf04a5d24b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=07ac45a36f574cfb870e4ad8a268953f&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5879,7 +5459,7 @@ def haeng1ban ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=409f83265f1447b59b945ed9b2b833ca&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=136dc06a196e4592b0f3fd96f92146ca&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5917,7 +5497,7 @@ def haengsimpan ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=46fb32db882d468bbb312f5ed9a635a4&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=c2e4d00ee4954a7b9aa5ba4b897477b4&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5934,10 +5514,6 @@ def haengsimpan ():
   ]
 }  
     return jsonify(response)
-
-
-
-
 
 
 ## 민사일반 4개 ##
@@ -5960,7 +5536,7 @@ def daeri ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=5d3a8340bf954464bf7bbd636bb67a43&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fbd53b69e3a748d991b9d86b1671135a&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -5997,7 +5573,7 @@ def legalact ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3d06d353018d4898a412e7bf9f4682e9&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=96fc1a44596749bf9607cd571769f25c&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6034,7 +5610,7 @@ def somuel ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a056d39ec9c54494abd62d3a437694e9&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b374fd4445f6422b9e9182b394b6818b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6071,7 +5647,7 @@ def limitperson ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=380f5091e1f84e1bae1f08d7c5f1d889&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=15750fd2ac8a4962badec7b678403f1e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6110,7 +5686,7 @@ def must1 ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=0dea66c6160247f5aa46cb55258b74fe&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6cccf70ca841464abe1a3263f17e8751&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6148,7 +5724,7 @@ def moneymust ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fea0855b66244f0aa9fceba966dbb700&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=910a22d6c8314719a8be08a4e7df0d07&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6186,7 +5762,42 @@ def etcmust ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=bfe129d2e3664ceb86db11b932281eae&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=18c0b8c5e6244a15841573ce185652b4&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+              }
+            },
+            {
+              "type":"url",
+              "label":"법률상담/구조사례",
+              "data":{
+                "url":"https://casenote.kr/"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}  
+    return jsonify(response)
+
+
+    response = {
+        "contents" : [
+
+    {
+      "type":"card.image",
+      "cards":[
+        {
+          "title":"금전채권 강제집행",
+          "imageUrl":"https://mblogthumb-phinf.pstatic.net/MjAyMjA1MjBfMjM0/MDAxNjUzMDMwODgwNTY1.TDf0TP5ijzmF-3RJ8RIPuMUnM6H8jJspL7ZaoDUX35Yg.yWKCWZtgEgqpfBfhxqWBqTqeDp7zFM8tjYp0lmQjmVYg.JPEG.sjkor1005/KakaoTalk_20220520_153817905.jpg?type=w800",
+          "description":"채권압류 및 전부명령신청",
+          "linkUrl": {},
+          "buttons":[
+            {
+              "type":"url",
+              "label":"법률서식",
+              "data":{
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fea0855b66244f0aa9fceba966dbb700&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6224,7 +5835,7 @@ def budongmust ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=ccfb9c1030ed4be4abe7ec41b62343ab&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d626a0534d7a4920bbcd820a119a4ca5&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6262,7 +5873,7 @@ def takemust ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=592d95f14edf4762b175f2f202e9e49b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=4aac966f95ce4c85a1256d0921d7c89e&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6300,7 +5911,7 @@ def ucmust ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=1864d15538f3451a81d0efcd6ee27e97&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a6a59cfa0b03405a8977be681a42af3b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6337,7 +5948,7 @@ def carmust ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=d758d8dd68614dd0aaa8e254d6a1658f&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=10df7219f12a4d8ea49b130384581d9f&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6354,10 +5965,6 @@ def carmust ():
   ]
 }  
     return jsonify(response)
-
-
-
-
 
 
 ## 개인회생, 파산 및 면책 1개 ##
@@ -6380,7 +5987,7 @@ def helpme ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b66294524454458cbad8389613e3376d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=702df1829423469a921767f0f0af7f3b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6420,7 +6027,7 @@ def ga1 ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=776ec8da030f4850aadbc443b3175943&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a7de23b9e1e3408c8640e22a13ed1642&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6457,7 +6064,7 @@ def gacheo ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=f37d911010bc4314910c6f28e68296ce&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=a0b8f885ad4a4f6cb403e0d3db008ded&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6494,7 +6101,7 @@ def etcbojeon ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=3f7cfc4fa01b4ddba7ecd827a600d5e3&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=45472fc7b0f944f3b488f5062f6bf94d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6531,7 +6138,7 @@ def budonggab ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=77db759fa81d4db3943cf528632907a1&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=fb74f37d208e429a8eda93783044d11d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6568,7 +6175,7 @@ def moneyab ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=b7c980a2196a4ba984498ad02995a078&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=f979a23cb52347ed9dc306bc22068d05&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6585,6 +6192,7 @@ def moneyab ():
   ]
 }  
     return jsonify(response)
+
 
 ## 상가임대차 4개 
 # 계약갱신요구
@@ -6606,7 +6214,7 @@ def trade ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=5022727ee2af42248744d116d3c78721&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6f379d90540a41c5a2a4541c33cde65c&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6643,7 +6251,7 @@ def premium ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=cdb849d1961a4f01b7c61025c96783ad&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=335aba3f69794649a1e0df752c030bb3&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6680,7 +6288,7 @@ def etcsanga ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=21c32d53ed4a4d639b3688572d13ab3d&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=2a7440cd65e0474c94b0b2b05bf6ef40&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6717,7 +6325,7 @@ def lentfee ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=5050d04f0f714e59ac042f414abf2e3a&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=1b69bc30bb7a4e1b9c241fc7cfa635d3&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6734,7 +6342,6 @@ def lentfee ():
   ]
 }  
     return jsonify(response)
-
 
 
 ## 상속 5개 ##
@@ -6757,7 +6364,7 @@ def sangsokbun ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=c07b6df1fcd2422eb81913f63f824cf2&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=716f04ee29fa4cf98d53140bb7af525c&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6795,7 +6402,7 @@ def sangsok1 ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6c1f3255693f48d4a427a95ef0f49754&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6decb7d5423e458a89c74b136fe09310&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6832,7 +6439,7 @@ def sangsokmoney ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=8d4997b94f914571ac49045a1e525c7b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=1a63412472d9473dacc6541a5fe84318&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6869,7 +6476,7 @@ def uryu ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=6ccba14a0f424a2fa86b22ed7afed755&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=52860d2397a341539264035d6ce3002b&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6907,7 +6514,7 @@ def dietell ():
               "type":"url",
               "label":"법률서식",
               "data":{
-                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=bcafc09884714483a2e1d974ac3e9726&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
+                "url":"https://viewer.klac.or.kr/SynapDocViewServer/viewer/doc.html?key=c1fdaadcee314b419abfb99d71d77064&convType=img&convLocale=ko_KR&contextPath=/SynapDocViewServer"
               }
             },
             {
@@ -6924,12 +6531,6 @@ def dietell ():
   ]
 }  
     return jsonify(response)
-
-
-
-
-
-
 
 if __name__ == "__main__":
     application.run(host='0.0.0.0', port = int(sys.argv[1]), debug = True)
