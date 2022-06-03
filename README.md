@@ -11,7 +11,7 @@
 | 3rd Additional Data  |Legal Terms Data |https://www.klac.or.kr/legalinfo/counsel.do  (법률구조공단)|
 
 # Author
-rlalastjd782/@rlalastjd782 (rlalastjd782@naver.com)
+sjkor1005@naver.com 
 
 # Requirement
 - 사용된 툴은 다음과 같습니다.<br/>
